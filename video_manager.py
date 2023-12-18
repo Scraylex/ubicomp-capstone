@@ -31,10 +31,9 @@ class VideoManager:
         while self.shared_dict['start_record'] and not self.shared_dict['stop_record']:
             ret, frame = capture.read()
             if ret:
-                cv2.imshow('Video', frame)
                 timestamp = int(time.time())
                 cv2.imwrite(f'{self.shared_dict["filename"]}/{timestamp}.jpg', frame)
-            await asyncio.sleep(1)
+            await asyncio.sleep(2)
         capture.release()
         cv2.destroyAllWindows()
         self.shared_dict['record_ready'] = False
