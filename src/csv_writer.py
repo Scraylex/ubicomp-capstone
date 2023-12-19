@@ -3,7 +3,7 @@ import pandas as pd
 from scipy.signal import butter, filtfilt
 import matplotlib.pyplot as plt
 
-from constants import DATA_KEYS
+from constants import DATA_KEYS, OUTPUT_DIR
 
 
 def butter_lowpass(cutoff, fs, order=5):
@@ -56,7 +56,7 @@ def create_plots(df, filename) -> None:
 
 def clean_data(df, filename):
     rolling_std = df[df.columns[:3]].rolling(window=10).std()
-    stable_index = rolling_std[rolling_std < 0.05].first_valid_index()
+    stable_index = rolling_std[rolling_std < 0.1].first_valid_index()
     if stable_index is not None:
         df = df.drop(df.index[stable_index + 1:])
         value = int(df.loc[stable_index, df.columns[3]])
@@ -76,3 +76,9 @@ def write_csv(values, filename) -> None:
 
     create_plots(df.copy(), filename)
     df.to_csv(f'{filename}/out.csv', index=False)
+
+
+if __name__ == '__main__':
+    filename = f'{OUTPUT_DIR}/Packaging_1702941227/'
+    df = pd.read_csv(f'{filename}/out.csv')
+    clean_data(df, filename)

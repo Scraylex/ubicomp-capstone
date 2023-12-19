@@ -2,4 +2,4 @@
 
 CSV Header
 
-"mac,acc_x,acc_y,acc_z,timestamp";
+"x,y,z,timestamp,sender";

@@ -23,7 +23,9 @@ class VoiceListener:
                 await asyncio.sleep(0.1)
                 start_cmd = self.RECOGNIZER.listen(source)
                 try:
-                    start = self.RECOGNIZER.recognize_google_cloud(start_cmd, credentials_json=ABS_PATH)
+                    start = self.RECOGNIZER.recognize_google_cloud(start_cmd, credentials_json=ABS_PATH,
+                                                                   #preferred_phrases=['start', 'stop']
+                                                                   )
                     print("Google Cloud Speech thinks you said " + start)
                     words = start.split()
                     if "start" in words[0]:
