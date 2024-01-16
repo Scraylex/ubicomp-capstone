@@ -1,84 +1,81 @@
 import os
+
+import numpy as np
 import pandas as pd
 from scipy.signal import butter, filtfilt
-import matplotlib.pyplot as plt
 
 from constants import DATA_KEYS, OUTPUT_DIR
+from src.data_plotter import create_plots
 
 
-def butter_lowpass(cutoff, fs, order=5):
+def buttersworth_lowpass_filter(data, cutoff, fs, order=5):
     nyq = 0.5 * fs
     normal_cutoff = cutoff / nyq
-    b, a = butter(order, normal_cutoff, btype='low', analog=False)
-    return b, a
+    b, a = butter(N=order, Wn=normal_cutoff)
+    return filtfilt(b, a, data)
 
 
-def butter_lowpass_filter(data, cutoff, fs, order=5):
-    b, a = butter_lowpass(cutoff, fs, order=order)
-    y = filtfilt(b, a, data)
-    return y
+def find_stable_periods(data, column, threshold=0.1, min_stable_samples=15):
+    # Calculate relative change as a measure of deviation
+    data['deviation'] = data[column].pct_change().abs()
+
+    # Identify stable samples
+    data['is_stable'] = data['deviation'] < threshold
+
+    # Find starting indices of stable periods
+    stable_starts = []
+    count = 0
+    for i, stable in enumerate(data['is_stable']):
+        if stable:
+            count += 1
+            if count == 1:
+                start = i
+            if count >= min_stable_samples:
+                stable_starts.append(start)
+                count = 0
+        else:
+            count = 0
+
+    # Optionally, remove stable periods from the dataframe
+    # for start in stable_starts:
+    #     data.drop(data.index[start:start + min_stable_samples], inplace=True)
+
+    return stable_starts
 
 
-def create_plots(df, filename) -> None:
-    df[df.columns[3]] = df[df.columns[3]].astype(float) - df[df.columns[3]].min()
-    plt.figure(figsize=(10, 6))
-    for column in df.columns[:3]:
-        plt.plot(df[df.columns[3]], df[column], label=column)
-    plt.legend()
-    plt.savefig(f'{filename}/plot.png')
+def find_consensus_start_index(data, axes, threshold=0.25, min_stable_samples=5):
+    all_starts = []
+    for axis in axes:
+        starts = find_stable_periods(data, axis, threshold, min_stable_samples)
+        all_starts.extend(starts)
 
-    # Plot x and y axes
-    plt.figure(figsize=(10, 6))
-    plt.plot(df[df.columns[0]], df[df.columns[1]], label='x vs y')
-    plt.legend()
-    plt.savefig(f'{filename}/plot_xy.png')
-
-    # Plot x and z axes
-    plt.figure(figsize=(10, 6))
-    plt.plot(df[df.columns[0]], df[df.columns[2]], label='x vs z')
-    plt.legend()
-    plt.savefig(f'{filename}/plot_xz.png')
-
-    # Plot y and z axes
-    plt.figure(figsize=(10, 6))
-    plt.plot(df[df.columns[1]], df[df.columns[2]], label='y vs z')
-    plt.legend()
-    plt.savefig(f'{filename}/plot_yz.png')
-
-    fig = plt.figure(figsize=(10, 6))
-    ax = fig.add_subplot(111, projection='3d')
-    ax.scatter(df[df.columns[0]], df[df.columns[1]], df[df.columns[2]])
-    ax.set_xlabel(df.columns[0])
-    ax.set_ylabel(df.columns[1])
-    ax.set_zlabel(df.columns[2])
-    plt.savefig(f'{filename}/scatter3d.png')
+    if all_starts:
+        # Calculate the average of start indices and round down
+        consensus_start = np.floor(np.mean(all_starts)).astype(int)
+        return consensus_start
+    else:
+        return None
 
 
-def clean_data(df, filename):
-    rolling_std = df[df.columns[:3]].rolling(window=10).std()
-    stable_index = rolling_std[rolling_std < 0.1].first_valid_index()
-    if stable_index is not None:
-        df = df.drop(df.index[stable_index + 1:])
-        value = int(df.loc[stable_index, df.columns[3]])
-        for file in os.listdir(filename):
-            if int(file.split('.')[0]) > value:
-                joined = os.path.join(filename, file)
-                os.remove(joined)
-                print(f"Removed {joined}")
+def write_csv(values, file_path) -> None:
+    data = pd.DataFrame(values, columns=DATA_KEYS)
+    for column in data.columns[:6]:
+        data[column] = buttersworth_lowpass_filter(data[column].astype(float), cutoff=3.0, fs=10.0)
 
+    create_plots(data.copy(), file_path)
 
-def write_csv(values, filename) -> None:
-    df = pd.DataFrame(values, columns=DATA_KEYS)
-    for column in df.columns[:3]:
-        df[column] = butter_lowpass_filter(df[column].astype(float), cutoff=3.0, fs=10.0)
+    # consensus_start_index = find_consensus_start_index(df, data.columns[:6])
+    # last_timestamp = data.iloc[consensus_start_index, 6]
+    #
+    # data = data.loc[:consensus_start_index]
 
-    clean_data(df, filename)
-
-    create_plots(df.copy(), filename)
-    df.to_csv(f'{filename}/out.csv', index=False)
+    data.to_csv(f'{file_path}/out.csv', index=False)
 
 
 if __name__ == '__main__':
-    filename = f'{OUTPUT_DIR}/Packaging_1702941227/'
+    filename = f'{OUTPUT_DIR}/drinking_1705414500/'
     df = pd.read_csv(f'{filename}/out.csv')
-    clean_data(df, filename)
+    consensus_start_index = find_consensus_start_index(df, df.columns[:6])
+    last_timestamp = df.iloc[consensus_start_index, 6]
+    data = df.loc[:consensus_start_index]
+

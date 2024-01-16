@@ -5,7 +5,7 @@ import threading
 from constants import ADDRESSES
 from nordic_ble_client import NordicBleClient
 from video_manager import VideoManager
-from voice_listener import VoiceListener
+from key_listener import KeyListener
 
 
 def run_in_new_loop(coroutine):
@@ -26,7 +26,7 @@ async def start():
 
         ble_client = NordicBleClient(ADDRESSES[0], shared_dict)
         video_manager = VideoManager(shared_dict)
-        voice_listener = VoiceListener(shared_dict)
+        voice_listener = KeyListener(shared_dict)
 
         ble_thread = threading.Thread(target=run_in_new_loop, args=(ble_client.start(),))
         video_thread = threading.Thread(target=run_in_new_loop, args=(video_manager.start(),))

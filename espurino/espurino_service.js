@@ -1,4 +1,4 @@
-const EVENT_SIZE = 12;
+const EVENT_SIZE = 24;
 const address = NRF.getAddress();
 
 NRF.setServices({
@@ -19,6 +19,9 @@ Puck.on('accel', function(d) {
   buffer.setInt32(0,d.gyro.x, true);
   buffer.setInt32(4,d.gyro.y, true);
   buffer.setInt32(8,d.gyro.z, true);
+  buffer.setInt32(12,d.acc.x, true);
+  buffer.setInt32(16,d.acc.y, true);
+  buffer.setInt32(20,d.acc.z, true);
   const byteArray = new Uint8Array(buffer.buffer);
   NRF.updateServices({
     0xBCDE: { // Service UUID

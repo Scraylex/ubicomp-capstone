@@ -7,7 +7,7 @@ import time
 from bleak import BleakClient
 
 import csv_writer
-from constants import DATA_KEYS, GYRO_CHAR, ADDRESSES
+from constants import GYRO_CHAR, ADDRESSES
 
 
 class NordicBleClient:
@@ -27,10 +27,8 @@ class NordicBleClient:
             self.shared_dict['ble_ready'] = True
             while not self.shared_dict['record_ready']:
                 await asyncio.sleep(1)
-                print("Waiting for record to be ready")
             await self.client.start_notify(GYRO_CHAR, self._uart_data_received)
-            print("Waiting for data")
-            while self.shared_dict['start_record'] and not self.shared_dict['stop_record']:
+            while not self.shared_dict['stop_record']:
                 await asyncio.sleep(0.1)
                 if not self.data_received:
                     break
@@ -52,11 +50,12 @@ class NordicBleClient:
 
     def _uart_data_received(self, sender, data: bytearray) -> None:
         self.data_received = True
-        values = struct.unpack('<iii', data)
-        values = [val for val in values]
-        values.append(time.time())
-        values.append(sender.description)
-        self.data_array.append(values)
+        if self.shared_dict['start_record']:
+            values = struct.unpack('<iiiiii', data)
+            values = [val for val in values]
+            values.append(time.time())
+            values.append(sender.description)
+            self.data_array.append(values)
 
 
 if __name__ == '__main__':
