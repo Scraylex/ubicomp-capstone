@@ -12,6 +12,7 @@ from constants import ABS_PATH, OUTPUT_DIR
 class VoiceListener:
     def __init__(self, shared_dict: Dict):
         self.RECOGNIZER = Recognizer()
+        self.RECOGNIZER.recognize_whisper_api( )
         self.RECOGNIZER.dynamic_energy_threshold = False
         self.shared_dict = shared_dict
 
