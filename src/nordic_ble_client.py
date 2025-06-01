@@ -4,10 +4,10 @@ from multiprocessing import Manager
 from typing import Dict
 
 import time
-from bleak import BleakClient
+from bleak import BleakClient, discover, BleakScanner
 
 import csv_writer
-from constants import GYRO_CHAR, ADDRESSES
+from constants import GYRO_CHAR, ADDRESSES, DURATION
 
 
 class NordicBleClient:
@@ -20,6 +20,10 @@ class NordicBleClient:
 
     async def start(self) -> None:
         try:
+            # get UUID of the puckJS to update the address for MacOS
+            devices = await BleakScanner.discover()
+            for d in devices:
+                print(d)
             print("Connecting to BLE device")
             self.client = BleakClient(self.address)
             await self.client.connect()
@@ -28,8 +32,8 @@ class NordicBleClient:
             while not self.shared_dict['record_ready']:
                 await asyncio.sleep(1)
             await self.client.start_notify(GYRO_CHAR, self._uart_data_received)
+            await asyncio.sleep(DURATION)
             while not self.shared_dict['stop_record']:
-                await asyncio.sleep(0.1)
                 if not self.data_received:
                     break
                 self.data_received = False
@@ -45,14 +49,15 @@ class NordicBleClient:
         await self.client.disconnect()
         print("Disconnected")
         print("Writing to csv")
-        csv_writer.write_csv(self.data_array, self.shared_dict['filename'])
+        csv_writer.write_csv(self.data_array, '../data')
         print("Done writing to csv")
 
     def _uart_data_received(self, sender, data: bytearray) -> None:
         self.data_received = True
         if self.shared_dict['start_record']:
-            values = struct.unpack('<iiiiii', data)
+            values = struct.unpack('<iiiiiii', data)
             values = [val for val in values]
+            print(values)
             values.append(time.time())
             values.append(sender.description)
             self.data_array.append(values)

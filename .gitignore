@@ -163,3 +163,7 @@ cython_debug/
 /ubicomp-capstone-d784c94c5ff8.json
 /notes/
 /data/
+*.csv
+/data Kopie/
+/IMSHA_Dataset/
+*.pth

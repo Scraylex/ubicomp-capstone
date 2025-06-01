@@ -14,7 +14,7 @@ class KeyListener:
         self.shared_dict = shared_dict
 
     async def listen(self):
-        print("Press 'r' to start recording...")
+        print("Press 'q' to start recording...")
         while not self.shared_dict['stop_record']:
             await asyncio.sleep(0.1)
             if keyboard.is_pressed('r'):
@@ -28,7 +28,7 @@ class KeyListener:
                     os.makedirs(directory)
                 self.shared_dict['filename'] = directory
                 self.shared_dict['start_record'] = True
-                print("Recording started. Press 'r' again to stop recording...")
+                print("Recording started. Press 'q' again to stop recording...")
                 while self.shared_dict['start_record']:
                     await asyncio.sleep(0.1)
                     if keyboard.is_pressed('r'):
@@ -45,14 +45,17 @@ class KeyListener:
     @staticmethod
     async def main(shared_dict: Dict):
         voice = KeyListener(shared_dict)
+        print('I am here too!')
         await voice.start()
 
 
 if __name__ == '__main__':
     with Manager() as manager:
+
         # Create a shared dictionary
         shared_dict = manager.dict({})
         # Create and start a process
         listener = KeyListener(shared_dict)
         listener_task = asyncio.create_task(listener.listen())
         asyncio.gather(listener_task)
+

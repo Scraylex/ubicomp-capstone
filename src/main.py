@@ -1,4 +1,5 @@
 #!/usr/bin/python
+import cv2
 
 import system_runner
 import asyncio
